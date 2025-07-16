@@ -1,0 +1,79 @@
+# ====================
+# Build Artifacts
+# ====================
+**/target/
+**/build/
+**/.mvn/
+
+# ====================
+# Java and Spring
+# ====================
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Spring Boot specific
+*.db
+*.h2.db
+*.mv.db
+.env
+*.env
+application-local.properties
+application-dev.properties
+application-test.properties
+
+# ====================
+# IDEs and Editors
+# ====================
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse
+.settings/
+*.classpath
+*.project
+
+# VS Code
+.vscode/
+
+# ====================
+# OS-generated files
+# ====================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ====================
+# Logs
+# ====================
+logs/
+**/*.log
+
+# ====================
+# Test Output
+# ====================
+test-output/
+surefire-reports/
+jacoco.exec
+
+# ====================
+# Kafka Local State
+# ====================
+kafka-logs/
+zookeeper-logs/
+
+# ====================
+# Temporary files
+# ====================
+*.tmp
+*.swp
+*.bak
+*.orig
+*.rej
