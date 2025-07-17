@@ -3,7 +3,6 @@ package com.vbank.user_service.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;
-import java.sql.Timestamp;
 
 @Entity
 @Table(name = "users")
@@ -12,8 +11,10 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 @Builder
 public class User {
+
     @Id
-    private UUID id;
+    @GeneratedValue
+    private UUID userId;
 
     @Column(unique = true, nullable = false)
     private String username;
@@ -22,14 +23,8 @@ public class User {
     private String email;
 
     @Column(nullable = false)
-    private String passwordHash;
+    private String password;
 
-    @Column(nullable = false)
     private String firstName;
-
-    @Column(nullable = false)
     private String lastName;
-
-    @Column(updatable = false)
-    private Timestamp createdAt;
 }
