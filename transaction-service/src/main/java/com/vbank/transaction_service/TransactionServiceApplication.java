@@ -1,4 +1,4 @@
-package com.vbank.transaction_service; // Corrected package name
+package com.vbank.transaction_service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

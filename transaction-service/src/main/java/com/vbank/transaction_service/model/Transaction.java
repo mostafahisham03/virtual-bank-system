@@ -1,8 +1,9 @@
-package com.vbank.transaction_service.model; // Corrected package name
+// src/main/java/com/vbank/transaction_service/model/Transaction.java
+package com.vbank.transaction_service.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.Builder; // <-- Add this
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -20,25 +21,27 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID transactionId;
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
 
+    @Column(name = "from_account_id", nullable = false)
     private UUID fromAccountId;
+
+    @Column(name = "to_account_id", nullable = false)
     private UUID toAccountId;
+
+    @Column(name = "amount", precision = 19, scale = 2, nullable = false)
     private BigDecimal amount;
+
+    @Column(name = "description")
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private TransactionStatus status;
 
+    @Column(name = "timestamp", nullable = false)
     private Instant timestamp;
 
-    @PrePersist
-    protected void onCreate() {
-        if (this.transactionId == null) {
-            this.transactionId = UUID.randomUUID();
-        }
-        if (this.timestamp == null) {
-            this.timestamp = Instant.now();
-        }
-    }
+
 }
