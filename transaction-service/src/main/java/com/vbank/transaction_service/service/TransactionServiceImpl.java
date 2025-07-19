@@ -34,7 +34,7 @@ public class TransactionServiceImpl implements TransactionService { // Implement
     private String loggingKafkaTopic;
 
     // Injects the URL of the Account Service from application.properties, with a default value.
-    @Value("${account.service.url:http://localhost:8081}")
+    @Value("${account.service.url:http://localhost:8082}")
     private String accountServiceUrl;
 
     @Override // Indicates that this method implements a method from the TransactionService interface.
