@@ -70,6 +70,9 @@ public class AccountServiceImpl implements AccountService {
         from.setBalance(from.getBalance().subtract(request.getAmount()));
         to.setBalance(to.getBalance().add(request.getAmount()));
 
+            from.setStatus(AccountStatus.ACTIVE);
+
+to.setStatus(AccountStatus.ACTIVE);
         accountRepository.save(from);
         accountRepository.save(to);
     }
