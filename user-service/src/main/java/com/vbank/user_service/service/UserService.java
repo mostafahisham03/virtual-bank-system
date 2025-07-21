@@ -8,6 +8,8 @@ import java.util.UUID;
 public interface UserService {
 
     ResponseEntity<?> registerUser(User user);
+
     ResponseEntity<?> loginUser(String username, String password);
+
     ResponseEntity<?> getUserProfile(UUID userId);
 }

@@ -7,6 +7,8 @@ import java.util.UUID;
 
 public interface TransactionService {
     Transaction initiateTransfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description);
+
     Transaction executeTransfer(UUID transactionId);
+
     List<Transaction> getTransactionsForAccount(UUID accountId);
 }

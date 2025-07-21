@@ -22,8 +22,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountResponse createAccount(AccountRequest request) {
-        if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Invalid initial balance.");
+        if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0 ||
+                (!request.getAccountType().equals("SAVINGS") &&
+                        !request.getAccountType().equals("CHECKING"))) {
+            throw new IllegalArgumentException("Invalid account type or initial balance.");
         }
 
         Account account = Account.builder()
@@ -70,9 +72,9 @@ public class AccountServiceImpl implements AccountService {
         from.setBalance(from.getBalance().subtract(request.getAmount()));
         to.setBalance(to.getBalance().add(request.getAmount()));
 
-            from.setStatus(AccountStatus.ACTIVE);
+        from.setStatus(AccountStatus.ACTIVE);
 
-to.setStatus(AccountStatus.ACTIVE);
+        to.setStatus(AccountStatus.ACTIVE);
         accountRepository.save(from);
         accountRepository.save(to);
     }

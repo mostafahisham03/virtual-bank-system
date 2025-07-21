@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor // This generates the constructor (int status, String error, String message)
 public class ErrorResponse {
-    private int status;    // Change this to int
-    private String error;  // This should be String (for reason phrase)
+    private int status; // Change this to int
+    private String error; // This should be String (for reason phrase)
     private String message; // This should be String (for custom message)
 }

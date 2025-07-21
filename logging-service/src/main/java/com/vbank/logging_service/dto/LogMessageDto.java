@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class LogMessageDto {
-    private String message;     // The escaped JSON request or response
+    private String message; // The escaped JSON request or response
     private String messageType; // "Request" | "Response"
 
     // Use ISO format for LocalDateTime, consistent with JSON timestamps

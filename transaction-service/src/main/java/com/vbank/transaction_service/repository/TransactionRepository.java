@@ -12,5 +12,6 @@ import java.util.UUID;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
     List<Transaction> findByFromAccountIdOrToAccountIdOrderByTimestampDesc(UUID accountId1, UUID accountId2);
+
     Optional<Transaction> findByIdAndStatus(UUID id, TransactionStatus status);
 }

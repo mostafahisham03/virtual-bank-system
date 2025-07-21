@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Repository
 public interface LogRepository extends JpaRepository<LogEntry, Long> {
     List<LogEntry> findByMessageType(String messageType);
+
     List<LogEntry> findByDateTimeBetween(LocalDateTime start, LocalDateTime end);
     // You can add more query methods as needed for auditing/debugging
 }

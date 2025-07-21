@@ -27,8 +27,7 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.status(409).body(Map.of(
                     "status", 409,
                     "error", "Conflict",
-                    "message", "Username or email already exists."
-            ));
+                    "message", "Username or email already exists."));
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -37,8 +36,7 @@ public class UserServiceImpl implements UserService {
         return ResponseEntity.status(201).body(Map.of(
                 "userId", savedUser.getUserId(),
                 "username", savedUser.getUsername(),
-                "message", "User registered successfully."
-        ));
+                "message", "User registered successfully."));
     }
 
     @Override
@@ -48,8 +46,7 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.status(401).body(Map.of(
                     "status", 401,
                     "error", "Unauthorized",
-                    "message", "Invalid username or password."
-            ));
+                    "message", "Invalid username or password."));
         }
 
         User user = userOptional.get();
@@ -57,14 +54,12 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.status(401).body(Map.of(
                     "status", 401,
                     "error", "Unauthorized",
-                    "message", "Invalid username or password."
-            ));
+                    "message", "Invalid username or password."));
         }
 
         return ResponseEntity.ok(Map.of(
                 "userId", user.getUserId(),
-                "username", user.getUsername()
-        ));
+                "username", user.getUsername()));
     }
 
     @Override
@@ -74,8 +69,7 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.status(404).body(Map.of(
                     "status", 404,
                     "error", "Not Found",
-                    "message", "User with ID " + userId + " not found."
-            ));
+                    "message", "User with ID " + userId + " not found."));
         }
 
         User user = userOptional.get();
@@ -84,7 +78,6 @@ public class UserServiceImpl implements UserService {
                 "username", user.getUsername(),
                 "email", user.getEmail(),
                 "firstName", user.getFirstName(),
-                "lastName", user.getLastName()
-        ));
+                "lastName", user.getLastName()));
     }
 }

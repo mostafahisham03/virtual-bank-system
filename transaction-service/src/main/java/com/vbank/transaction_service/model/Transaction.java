@@ -43,5 +43,4 @@ public class Transaction {
     @Column(name = "timestamp", nullable = false)
     private Instant timestamp;
 
-
 }
