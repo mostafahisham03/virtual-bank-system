@@ -1,5 +1,6 @@
 package com.vbank.account_service.service;
 
+import com.vbank.account_service.config.KafkaLogger;
 import com.vbank.account_service.dto.*;
 import com.vbank.account_service.model.*;
 import com.vbank.account_service.exception.AccountNotFoundException;
@@ -19,12 +20,15 @@ import static java.util.stream.Collectors.toList;
 public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
+    private final KafkaLogger kafkaLogger;
 
     @Override
     public AccountResponse createAccount(AccountRequest request) {
+        kafkaLogger.sendLog(request.toString(), "Request");
+
+        AccountType type = request.getAccountType();
         if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0 ||
-                (!request.getAccountType().equals("SAVINGS") &&
-                        !request.getAccountType().equals("CHECKING"))) {
+                (type != AccountType.SAVINGS && type != AccountType.CHECKING)) {
             throw new IllegalArgumentException("Invalid account type or initial balance.");
         }
 
@@ -38,28 +42,36 @@ public class AccountServiceImpl implements AccountService {
 
         accountRepository.save(account);
 
+        kafkaLogger.sendLog("Account created: " + account.getId(), "Response");
+
         return mapToResponse(account);
     }
 
     @Override
     public AccountResponse getAccountById(UUID accountId) {
+        kafkaLogger.sendLog("Fetching account by ID: " + accountId, "Request");
+
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
+        kafkaLogger.sendLog("Account found: " + account.getId(), "Response");
         return mapToResponse(account);
     }
 
     @Override
     public List<AccountResponse> getAccountsByUserId(UUID userId) {
+        kafkaLogger.sendLog("Fetching accounts for user ID: " + userId, "Request");
         List<Account> accounts = accountRepository.findByUserId(userId);
         if (accounts.isEmpty()) {
             throw new AccountNotFoundException("No accounts found for user ID " + userId);
         }
+        kafkaLogger.sendLog("Accounts found for user ID: " + userId, "Response");
         return accounts.stream().map(this::mapToResponse).collect(toList());
     }
 
     @Override
     @Transactional
     public void transferFunds(TransferRequest request) {
+        kafkaLogger.sendLog("Transfer request: " + request.toString(), "Request");
         Account from = accountRepository.findById(request.getFromAccountId())
                 .orElseThrow(() -> new AccountNotFoundException(request.getFromAccountId()));
         Account to = accountRepository.findById(request.getToAccountId())
@@ -77,6 +89,7 @@ public class AccountServiceImpl implements AccountService {
         to.setStatus(AccountStatus.ACTIVE);
         accountRepository.save(from);
         accountRepository.save(to);
+        kafkaLogger.sendLog("Transfer successful from " + from.getId() + " to " + to.getId(), "Response");
     }
 
     private String generateAccountNumber() {

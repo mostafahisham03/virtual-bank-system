@@ -30,7 +30,7 @@ public class LogConsumer {
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
-    @KafkaListener(topics = "${kafka.topic.logs}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${vbank.kafka.topic.logs}", groupId = "${spring.kafka.consumer.group-id}")
     public void consumeLogMessage(String logMessageJson) {
         log.info("Received raw log message from Kafka: {}", logMessageJson);
         try {

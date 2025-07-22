@@ -1,14 +1,12 @@
 package com.vbank.bff_service.service;
 
+import com.vbank.bff_service.config.KafkaLogger;
 import com.vbank.bff_service.dto.*;
-import com.vbank.bff_service.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -16,8 +14,12 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final WebClient.Builder webClientBuilder;
 
+    private final KafkaLogger kafkaLogger;
+
     @Override
     public DashboardResponse getDashboard(String userId) {
+        kafkaLogger.sendLog("Fetching dashboard for user ID: " + userId, "Request");
+        // Using WebClient to fetch user profile, accounts, and transactions
         WebClient userClient = webClientBuilder.baseUrl("http://USER-SERVICE").build();
         WebClient accountClient = webClientBuilder.baseUrl("http://ACCOUNT-SERVICE").build();
         WebClient transactionClient = webClientBuilder.baseUrl("http://TRANSACTION-SERVICE").build();
@@ -47,7 +49,7 @@ public class DashboardServiceImpl implements DashboardService {
                 account.setTransactions(transactions);
             }
         }
-
+        kafkaLogger.sendLog("Dashboard fetched for user ID: " + userId, "Response");
         return DashboardResponse.builder()
                 .userId(userId)
                 .username(user.getUsername())
