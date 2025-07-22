@@ -3,59 +3,120 @@ package com.vbank.bff_service.service;
 import com.vbank.bff_service.config.KafkaLogger;
 import com.vbank.bff_service.dto.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
     private final WebClient.Builder webClientBuilder;
-
     private final KafkaLogger kafkaLogger;
 
-    @Override
-    public DashboardResponse getDashboard(String userId) {
-        kafkaLogger.sendLog("Fetching dashboard for user ID: " + userId, "Request");
-        // Using WebClient to fetch user profile, accounts, and transactions
-        WebClient userClient = webClientBuilder.baseUrl("http://USER-SERVICE").build();
-        WebClient accountClient = webClientBuilder.baseUrl("http://ACCOUNT-SERVICE").build();
-        WebClient transactionClient = webClientBuilder.baseUrl("http://TRANSACTION-SERVICE").build();
+    @Value("${user.service.url}")
+    private String userServiceUrl;
 
-        UserProfile user = userClient.get()
+    @Value("${account.service.url}")
+    private String accountServiceUrl;
+
+    @Value("${transaction.service.url}")
+    private String transactionServiceUrl;
+
+    @Override
+    public Mono<DashboardResponse> getDashboard(String userId) {
+        kafkaLogger.sendLog("Fetching dashboard for user ID: " + userId, "Request");
+
+        // Create WebClients with proper URLs
+        WebClient userClient = webClientBuilder.baseUrl(userServiceUrl).build();
+        WebClient accountClient = webClientBuilder.baseUrl(accountServiceUrl).build();
+        WebClient transactionClient = webClientBuilder.baseUrl(transactionServiceUrl).build();
+
+        // Fetch user profile and accounts in parallel
+        Mono<UserProfile> userProfileMono = userClient.get()
                 .uri("/users/{userId}/profile", userId)
                 .retrieve()
                 .bodyToMono(UserProfile.class)
-                .block();
+                .timeout(Duration.ofSeconds(10))
+                .onErrorResume(ex -> {
+                    log.error("Error fetching user profile for userId: {}", userId, ex);
+                    return Mono.just(createDefaultUserProfile(userId));
+                });
 
-        List<Account> accounts = accountClient.get()
-                .uri("accounts/users/{userId}", userId)
+        Mono<List<Account>> accountsMono = accountClient.get()
+                .uri("/accounts/users/{userId}", userId) // Fixed URI
                 .retrieve()
                 .bodyToFlux(Account.class)
+                .timeout(Duration.ofSeconds(10))
                 .collectList()
-                .block();
+                .onErrorResume(ex -> {
+                    log.error("Error fetching accounts for userId: {}", userId, ex);
+                    return Mono.just(Collections.emptyList());
+                });
 
-        if (accounts != null) {
-            for (Account account : accounts) {
-                List<Transaction> transactions = transactionClient.get()
-                        .uri("/accounts/{accountId}/transactions", account.getAccountId())
-                        .retrieve()
-                        .bodyToFlux(Transaction.class)
-                        .collectList()
-                        .onErrorReturn(Collections.emptyList())
-                        .block();
-                account.setTransactions(transactions);
-            }
-        }
-        kafkaLogger.sendLog("Dashboard fetched for user ID: " + userId, "Response");
+        // Combine user profile and accounts, then fetch transactions
+        return Mono.zip(userProfileMono, accountsMono)
+                .flatMap(tuple -> {
+                    UserProfile userProfile = tuple.getT1();
+                    List<Account> accounts = tuple.getT2();
+
+                    // Fetch transactions for each account
+                    List<Mono<Account>> accountWithTransactions = accounts.stream()
+                            .map(account -> fetchTransactionsForAccount(transactionClient, account))
+                            .toList();
+
+                    return Mono.zip(accountWithTransactions, objects -> Arrays.asList(objects))
+                            .cast(List.class)
+                            .map(accountsWithTransactions -> buildDashboardResponse(userProfile,
+                                    accountsWithTransactions, userId));
+                })
+                .doOnSuccess(response -> kafkaLogger.sendLog("Dashboard fetched successfully for user ID: " + userId,
+                        "Response"))
+                .doOnError(ex -> kafkaLogger.sendLog(
+                        "Error fetching dashboard for user ID: " + userId + ", Error: " + ex.getMessage(), "Error"));
+    }
+
+    private Mono<Account> fetchTransactionsForAccount(WebClient transactionClient, Account account) {
+        return transactionClient.get()
+                .uri("/transactions/accounts/{accountId}", account.getAccountId())
+                .retrieve()
+                .bodyToFlux(Transaction.class)
+                .timeout(Duration.ofSeconds(10))
+                .collectList()
+                .map(transactions -> {
+                    account.setTransactions(transactions);
+                    return account;
+                })
+                .onErrorResume(ex -> {
+                    log.error("Error fetching transactions for accountId: {}", account.getAccountId(), ex);
+                    account.setTransactions(Collections.emptyList());
+                    return Mono.just(account);
+                });
+    }
+
+    private UserProfile createDefaultUserProfile(String userId) {
+        return UserProfile.builder()
+                .userId(userId)
+                .username("john.doe") // Consider removing or fetching from cache
+                .email("johndoe@email.com")
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+    }
+
+    private DashboardResponse buildDashboardResponse(UserProfile userProfile, List<Account> accounts, String userId) {
         return DashboardResponse.builder()
                 .userId(userId)
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
+                .username(userProfile.getUsername())
+                .email(userProfile.getEmail())
+                .firstName(userProfile.getFirstName())
+                .lastName(userProfile.getLastName())
                 .accounts(accounts)
                 .build();
     }
