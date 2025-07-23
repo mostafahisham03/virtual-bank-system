@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -168,7 +169,8 @@ public class TransactionServiceImpl implements TransactionService {
         @Override
         @Transactional
         public Transaction executeTransfer(UUID transactionId) {
-                kafkaLogger.sendLog("Executing transfer for transaction ID: " + transactionId, "Request");
+                kafkaLogger.sendLog("Executing transfer for transaction ID: " +
+                                transactionId, "Request");
 
                 Transaction transaction = transactionRepository
                                 .findByIdAndStatus(transactionId, TransactionStatus.INITIATED)
@@ -185,7 +187,8 @@ public class TransactionServiceImpl implements TransactionService {
                                         transaction.getToAccountId(),
                                         transaction.getAmount());
 
-                        kafkaLogger.sendLog("Executing fund transfer to Account Service: " + updateDto.toString(),
+                        kafkaLogger.sendLog("Executing fund transfer to Account Service: " +
+                                        updateDto.toString(),
                                         "Request");
 
                         webClient.put()
@@ -208,7 +211,8 @@ public class TransactionServiceImpl implements TransactionService {
                                                                                 String reasonPhrase = (httpStatus != null)
                                                                                                 ? httpStatus.getReasonPhrase()
                                                                                                 : "Unknown Error";
-
+                                                                                markTransactionAsFailed(transaction,
+                                                                                                reasonPhrase);
                                                                                 return Mono.error(
                                                                                                 new WebClientResponseException(
                                                                                                                 "Fund transfer failed: "
@@ -227,7 +231,8 @@ public class TransactionServiceImpl implements TransactionService {
                         transaction.setTimestamp(Instant.now());
                         transactionRepository.save(transaction);
 
-                        kafkaLogger.sendLog("Transfer executed successfully for transaction ID: " + transactionId,
+                        kafkaLogger.sendLog("Transfer executed successfully for transaction ID: " +
+                                        transactionId,
                                         "Response");
                         return transaction;
 
@@ -236,9 +241,9 @@ public class TransactionServiceImpl implements TransactionService {
                         transaction.setStatus(TransactionStatus.FAILED);
                         transaction.setTimestamp(Instant.now());
                         transactionRepository.save(transaction);
-
                         kafkaLogger.sendLog(
-                                        "Transfer failed for transaction ID: " + transactionId + " - " + e.getMessage(),
+                                        "Transfer failed for transaction ID: " + transactionId + " - " +
+                                                        e.getMessage(),
                                         "Error");
                         throw new IllegalArgumentException("Transfer execution failed: " + e.getMessage(), e);
 
@@ -247,7 +252,6 @@ public class TransactionServiceImpl implements TransactionService {
                         transaction.setStatus(TransactionStatus.FAILED);
                         transaction.setTimestamp(Instant.now());
                         transactionRepository.save(transaction);
-
                         System.err.println("An unexpected error occurred during transaction execution for ID "
                                         + transactionId + ": " + e.getMessage());
                         kafkaLogger.sendLog(
@@ -262,11 +266,20 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         public List<Transaction> getTransactionsForAccount(UUID accountId) {
-                kafkaLogger.sendLog("Fetching transactions for account ID: " + accountId, "Request");
+                kafkaLogger.sendLog("Fetching transactions for account ID: " + accountId,
+                                "Request");
                 List<Transaction> transactions = transactionRepository
                                 .findByFromAccountIdOrToAccountIdOrderByTimestampDesc(accountId, accountId);
                 kafkaLogger.sendLog("Fetched " + transactions.size() + " transactions for account ID: " + accountId,
                                 "Response");
                 return transactions;
         }
+
+        @Transactional(propagation = Propagation.REQUIRES_NEW)
+        public void markTransactionAsFailed(Transaction transaction, String reason) {
+                transaction.setStatus(TransactionStatus.FAILED);
+                transaction.setTimestamp(Instant.now());
+                transactionRepository.save(transaction);
+        }
+
 }
