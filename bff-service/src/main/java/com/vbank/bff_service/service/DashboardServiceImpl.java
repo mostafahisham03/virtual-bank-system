@@ -48,6 +48,8 @@ public class DashboardServiceImpl implements DashboardService {
                                 .bodyToMono(UserProfile.class)
                                 .timeout(Duration.ofSeconds(10))
                                 .onErrorResume(ex -> {
+                                        kafkaLogger.sendLog("Error fetching user profile for userId: " + userId,
+                                                        "Response");
                                         log.error("Error fetching user profile for userId: {}", userId, ex);
                                         // return a mono error 404 user profile not found
                                         return Mono.error(new ResponseStatusException(
@@ -62,6 +64,8 @@ public class DashboardServiceImpl implements DashboardService {
                                 .timeout(Duration.ofSeconds(10))
                                 .collectList()
                                 .onErrorResume(ex -> {
+                                        kafkaLogger.sendLog("Error fetching accounts for userId: " + userId,
+                                                        "Response");
                                         log.error("Error fetching accounts for userId: {}", userId, ex);
                                         return Mono.just(Collections.emptyList());
                                 });
@@ -92,6 +96,7 @@ public class DashboardServiceImpl implements DashboardService {
                                                                 + ex.getMessage(),
                                                 "Error"))
                                 .onErrorResume(ex -> {
+                                        log.error("Error fetching dashboard for userId: {}", userId, ex);
                                         return Mono.error(new ResponseStatusException(
                                                         HttpStatus.INTERNAL_SERVER_ERROR,
                                                         "Failed to retrieve dashboard data due to an issue with downstream services."));
@@ -111,6 +116,8 @@ public class DashboardServiceImpl implements DashboardService {
                                         return account;
                                 })
                                 .onErrorResume(ex -> {
+                                        kafkaLogger.sendLog("Error fetching transactions for accountId: "
+                                                        + account.getAccountId(), "Response");
                                         log.error("Error fetching transactions for accountId: {}",
                                                         account.getAccountId(), ex);
                                         account.setTransactions(Collections.emptyList());

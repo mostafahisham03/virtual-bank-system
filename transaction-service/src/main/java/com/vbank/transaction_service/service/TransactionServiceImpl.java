@@ -52,10 +52,12 @@ public class TransactionServiceImpl implements TransactionService {
                                 + " for amount: " + amount + " with description: " + description, "Request");
 
                 if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                        kafkaLogger.sendLog("Transfer amount must be positive: " + amount, "Response");
                         throw new IllegalArgumentException("Transfer amount must be positive.");
                 }
 
                 if (fromAccountId.equals(toAccountId)) {
+                        kafkaLogger.sendLog("Cannot transfer to the same account: " + fromAccountId, "Response");
                         throw new IllegalArgumentException("Cannot transfer to the same account.");
                 }
 
@@ -73,6 +75,12 @@ public class TransactionServiceImpl implements TransactionService {
                                         .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                                                         clientResponse -> clientResponse.bodyToMono(String.class)
                                                                         .flatMap(errorBody -> {
+                                                                                kafkaLogger.sendLog(
+                                                                                                "Failed to fetch source account ("
+                                                                                                                + clientResponse.statusCode()
+                                                                                                                + "): "
+                                                                                                                + errorBody,
+                                                                                                "Response");
                                                                                 System.err.println(
                                                                                                 "Failed to fetch source account ("
                                                                                                                 + clientResponse.statusCode()
@@ -86,7 +94,10 @@ public class TransactionServiceImpl implements TransactionService {
                                                                                 String reasonPhrase = (httpStatus != null)
                                                                                                 ? httpStatus.getReasonPhrase()
                                                                                                 : "Unknown Error";
-
+                                                                                kafkaLogger.sendLog(
+                                                                                                "Source account validation failed: "
+                                                                                                                + errorBody,
+                                                                                                "Response");
                                                                                 return Mono.error(
                                                                                                 new WebClientResponseException(
                                                                                                                 "Source account validation failed: "
@@ -120,7 +131,12 @@ public class TransactionServiceImpl implements TransactionService {
                                                                                 String reasonPhrase = (httpStatus != null)
                                                                                                 ? httpStatus.getReasonPhrase()
                                                                                                 : "Unknown Error";
-
+                                                                                kafkaLogger.sendLog(
+                                                                                                "Failed to fetch destination account ("
+                                                                                                                + clientResponse.statusCode()
+                                                                                                                + "): "
+                                                                                                                + errorBody,
+                                                                                                "Response");
                                                                                 return Mono.error(
                                                                                                 new WebClientResponseException(
                                                                                                                 "Destination account validation failed: "
@@ -136,6 +152,8 @@ public class TransactionServiceImpl implements TransactionService {
 
                         // Validate sufficient balance
                         if (fromAccount.getBalance().compareTo(amount) < 0) {
+                                kafkaLogger.sendLog("Insufficient balance in source account: " +
+                                                fromAccount.getBalance() + ", required: " + amount, "Response");
                                 throw new IllegalArgumentException("Insufficient balance. Available: " +
                                                 fromAccount.getBalance() + ", Required: " + amount);
                         }
@@ -144,8 +162,12 @@ public class TransactionServiceImpl implements TransactionService {
                                         fromAccount.getBalance() + ", Transfer amount: " + amount, "Response");
 
                 } catch (WebClientResponseException e) {
-                        throw new IllegalArgumentException("Transfer validation failed: " + e.getMessage(), e);
+                        kafkaLogger.sendLog("Account validation failed: " + e.getMessage(), "Response");
+                        System.err.println("Account validation failed: " + e.getMessage());
+                        throw new IllegalArgumentException("Account validation failed: " + e.getMessage(), e);
                 } catch (Exception e) {
+                        kafkaLogger.sendLog(
+                                        "Unexpected error during transfer validation: " + e.getMessage(), "Response");
                         throw new RuntimeException(
                                         "An unexpected error occurred during transfer validation: " + e.getMessage(),
                                         e);
@@ -244,7 +266,7 @@ public class TransactionServiceImpl implements TransactionService {
                         kafkaLogger.sendLog(
                                         "Transfer failed for transaction ID: " + transactionId + " - " +
                                                         e.getMessage(),
-                                        "Error");
+                                        "Response");
                         throw new IllegalArgumentException("Transfer execution failed: " + e.getMessage(), e);
 
                 } catch (Exception e) {
@@ -257,7 +279,7 @@ public class TransactionServiceImpl implements TransactionService {
                         kafkaLogger.sendLog(
                                         "Unexpected error during transfer execution for transaction ID: "
                                                         + transactionId + " - " + e.getMessage(),
-                                        "Error");
+                                        "Response");
                         throw new RuntimeException(
                                         "An unexpected error occurred during transaction execution: " + e.getMessage(),
                                         e);
@@ -280,6 +302,8 @@ public class TransactionServiceImpl implements TransactionService {
                 transaction.setStatus(TransactionStatus.FAILED);
                 transaction.setTimestamp(Instant.now());
                 transactionRepository.save(transaction);
+                kafkaLogger.sendLog("Transaction marked as FAILED: " + transaction.getId() + " - Reason: " + reason,
+                                "Response");
         }
 
 }

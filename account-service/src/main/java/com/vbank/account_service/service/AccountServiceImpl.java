@@ -29,6 +29,7 @@ public class AccountServiceImpl implements AccountService {
         AccountType type = request.getAccountType();
         if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0 ||
                 (type != AccountType.SAVINGS && type != AccountType.CHECKING)) {
+            kafkaLogger.sendLog("Invalid account type or initial balance: " + request, "Response");
             throw new IllegalArgumentException("Invalid account type or initial balance.");
         }
 
@@ -52,7 +53,10 @@ public class AccountServiceImpl implements AccountService {
         kafkaLogger.sendLog("Fetching account by ID: " + accountId, "Request");
 
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AccountNotFoundException(accountId));
+                .orElseThrow(() -> {
+                    kafkaLogger.sendLog("Account not found: " + accountId, "Response");
+                    return new AccountNotFoundException("Account with ID " + accountId + " not found.");
+                });
         kafkaLogger.sendLog("Account found: " + account.getId(), "Response");
         return mapToResponse(account);
     }
@@ -62,6 +66,7 @@ public class AccountServiceImpl implements AccountService {
         kafkaLogger.sendLog("Fetching accounts for user ID: " + userId, "Request");
         List<Account> accounts = accountRepository.findByUserId(userId);
         if (accounts.isEmpty()) {
+            kafkaLogger.sendLog("No accounts found for user ID: " + userId, "Response");
             throw new AccountNotFoundException("No accounts found for user ID " + userId);
         }
         kafkaLogger.sendLog("Accounts found for user ID: " + userId, "Response");
@@ -78,6 +83,8 @@ public class AccountServiceImpl implements AccountService {
                 .orElseThrow(() -> new AccountNotFoundException(request.getToAccountId()));
 
         if (from.getBalance().compareTo(request.getAmount()) < 0) {
+            kafkaLogger.sendLog("Insufficient balance in source account: " + from.getBalance() +
+                    ", required: " + request.getAmount(), "Response");
             throw new IllegalArgumentException("Insufficient balance.");
         }
 
