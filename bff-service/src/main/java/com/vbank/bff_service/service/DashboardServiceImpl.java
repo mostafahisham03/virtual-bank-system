@@ -5,8 +5,11 @@ import com.vbank.bff_service.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
+
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -79,7 +82,13 @@ public class DashboardServiceImpl implements DashboardService {
                 .doOnSuccess(response -> kafkaLogger.sendLog("Dashboard fetched successfully for user ID: " + userId,
                         "Response"))
                 .doOnError(ex -> kafkaLogger.sendLog(
-                        "Error fetching dashboard for user ID: " + userId + ", Error: " + ex.getMessage(), "Error"));
+                        "Error fetching dashboard for user ID: " + userId + ", Error: " + ex.getMessage(), "Error"))
+                .onErrorResume(ex -> {
+                    return Mono.error(new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "Failed to retrieve dashboard data due to an issue with downstream services."));
+                });
+
     }
 
     private Mono<Account> fetchTransactionsForAccount(WebClient transactionClient, Account account) {

@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class Transaction {
-    private String id;
+    private String transactionId;
     private double amount;
     private String toAccountId;
     private String fromAccountId;

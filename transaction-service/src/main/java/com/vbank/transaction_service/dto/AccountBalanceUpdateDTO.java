@@ -12,8 +12,8 @@ import java.util.UUID;
 @AllArgsConstructor
 
 public class AccountBalanceUpdateDTO {
-    private UUID toAccountId;
     private UUID fromAccountId;
+    private UUID toAccountId;
     private BigDecimal Amount;
 
 }
