@@ -1,0 +1,147 @@
+openapi: 3.0.1
+info:
+  title: Account Service API
+  version: 1.0.0
+  description: Manages user bank accounts
+
+paths:
+  /accounts/transfer:
+    put:
+      tags: [Account]
+      summary: Transfer amount between accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountTransferRequest'
+      responses:
+        200:
+          description: Transfer successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountTransferResponse'
+        400:
+          description: Invalid transfer request
+        404:
+          description: Account not found
+  /accounts:
+    post:
+      tags: [Account]
+      summary: Create a new bank account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreation'
+      responses:
+        201:
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        400:
+          description: Invalid account type or initial balance
+
+  /accounts/{accountId}:
+    get:
+      tags: [Account]
+      summary: Get account details
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountDetail'
+        404:
+          description: Account not found
+
+  /users/{userId}/accounts:
+    get:
+      tags: [Account]
+      summary: List all accounts for a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of user accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountDetail'
+        404:
+          description: No accounts found
+
+components:
+  schemas:
+    AccountCreation:
+      type: object
+      properties:
+        userId:
+          type: string
+        accountType:
+          type: string
+          enum: [debit, credit]
+        initialBalance:
+          type: number
+          format: float
+      required: [userId, accountType, initialBalance]
+
+    AccountTransferRequest:
+      type: object
+      properties:
+        fromAccountId:
+          type: string
+        toAccountId:
+          type: string
+        amount:
+          type: number
+          format: float
+      required: [fromAccountId, toAccountId, amount]
+
+    AccountTransferResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    AccountResponse:
+      type: object
+      properties:
+        accountId:
+          type: string
+        accountNumber:
+          type: string
+        message:
+          type: string
+
+    AccountDetail:
+      type: object
+      properties:
+        accountId:
+          type: string
+        accountNumber:
+          type: string
+        balance:
+          type: number
+        accountType:
+          type: string
+          enum: [debit, credit]
+        status:
+          type: string
+          enum: [active, inactive]  # Enum for status

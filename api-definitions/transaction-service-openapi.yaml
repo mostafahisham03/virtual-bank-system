@@ -1,0 +1,128 @@
+openapi: 3.0.1
+info:
+  title: Transaction Service API
+  version: 1.0.0
+  description: Handles deposits, withdrawals, and transfers
+
+paths:
+  /accounts/{accountId}/transactions:
+    get:
+      tags: [ Transaction ]
+      summary: Get transaction history for an account
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionDetail'
+        404:
+          description: No transactions found
+
+  /transactions/transfer/initiation:
+    post:
+      tags: [ Transaction ]
+      summary: Initiate a fund transfer between two accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequestInitiation'
+      responses:
+        200:
+          description: Transfer initiation success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        400:
+          description: Invalid account or insufficient funds
+
+  /transactions/transfer/execution:
+    post:
+      tags: [ Transaction ]
+      summary: Execute a previously initiated fund transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequestExecution'
+      responses:
+        200:
+          description: Transfer executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        400:
+          description: Invalid account or insufficient funds
+
+components:
+  schemas:
+
+    TransactionDetail:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        accountId:
+          type: string
+        amount:
+          type: number
+          format: double
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    TransferRequestInitiation:
+      type: object
+      required:
+        - fromAccountId
+        - toAccountId
+        - amount
+      properties:
+        fromAccountId:
+          type: string
+        toAccountId:
+          type: string
+        amount:
+          type: number
+          format: double
+        description:
+          type: string
+
+    TransferRequestExecution:
+      type: object
+      required:
+        - transactionId
+      properties:
+        transactionId:
+          type: string
+          description: Required only for execution step
+
+    TransferResponse:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        status:
+          type: string
+          enum:
+            - "INITIATED"
+            - "FAILED"
+            - "SUCCESS"
+        timestamp:
+          type: string
+          format: date-time

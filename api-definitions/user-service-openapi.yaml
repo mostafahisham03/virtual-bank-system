@@ -1,0 +1,105 @@
+openapi: 3.0.1
+info:
+  title: User Service API
+  version: 1.0.0
+  description: Handles registration, login, and user profile
+
+paths:
+  /users/register:
+    post:
+      tags: [User]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        201:
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        409:
+          description: Username or email already exists
+
+  /users/login:
+    post:
+      tags: [User]
+      summary: Authenticate user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        200:
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        401:
+          description: Invalid credentials
+
+  /users/{userId}/profile:
+    get:
+      tags: [User]
+      summary: Get user profile
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        404:
+          description: User not found
+
+components:
+  schemas:
+    UserRegistration:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+        email: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+
+    UserLogin:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    LoginResponse:
+      type: object
+      properties:
+        userId: { type: string }
+        username: { type: string }
+
+    UserResponse:
+      type: object
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        message: { type: string }
+
+    UserProfile:
+      type: object
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        email: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }

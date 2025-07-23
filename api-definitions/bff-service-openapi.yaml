@@ -1,0 +1,73 @@
+openapi: 3.0.1
+info:
+  title: BFF Service API
+  version: 1.0.0
+  description: Backend for Frontend - Aggregates calls for dashboard and orchestrates transactions
+
+paths:
+
+  /bff/dashboard/{userId}:
+    get:
+      tags: [BFF]
+      summary: Get user dashboard with profile, accounts, and transactions
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        404:
+          description: User not found
+
+components:
+  schemas:
+    Dashboard:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        firstname:
+          type: string
+        lastname:
+          type: string
+        accounts:
+          type: array
+          items:
+            type: object
+            properties:
+              accountId:
+                type: string
+              accountType:
+                type: string
+              accountNumber:
+                type: string
+              balance:
+                type: number
+              transactions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    transactionId:
+                      type: string
+                    amount:
+                      type: number
+                      format: double
+                    toAccountId:
+                      type: string
+                    description:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
