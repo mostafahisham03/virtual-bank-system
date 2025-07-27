@@ -66,7 +66,7 @@ paths:
         '404':
           description: Account not found
 
-  /users/{userId}/accounts:
+  accounts/users/{userId}:
     get:
       tags: [Account]
       summary: List all accounts for a user

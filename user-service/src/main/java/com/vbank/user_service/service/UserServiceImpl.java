@@ -51,10 +51,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<?> loginUser(String username, String rawPassword) {
-        // kafkaLogger.sendLog("User login attempt: " + username, "Request");
+        kafkaLogger.sendLog("User login attempt: " + username, "Request");
         Optional<User> userOptional = userRepository.findByUsername(username);
         if (userOptional.isEmpty()) {
-            // kafkaLogger.sendLog("Login failed for user: " + username, "Response");
+            kafkaLogger.sendLog("Login failed for user: " + username, "Response");
             return ResponseEntity.status(401).body(Map.of(
                     "status", 401,
                     "error", "Unauthorized",
@@ -63,14 +63,14 @@ public class UserServiceImpl implements UserService {
 
         User user = userOptional.get();
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            // kafkaLogger.sendLog("Login failed for user: " + username, "Response");
+            kafkaLogger.sendLog("Login failed for user: " + username, "Response");
             return ResponseEntity.status(401).body(Map.of(
                     "status", 401,
                     "error", "Unauthorized",
                     "message", "Invalid username or password."));
         }
-        // kafkaLogger.sendLog("User logged in successfully: " + user.getUsername(),
-        // "Response");
+        kafkaLogger.sendLog("User logged in successfully: " + user.getUsername(),
+                "Response");
         return ResponseEntity.ok(Map.of(
                 "userId", user.getUserId(),
                 "username", user.getUsername()));
@@ -78,12 +78,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<?> getUserProfile(UUID userId) {
-        // kafkaLogger.sendLog("Fetching user profile for user ID: " + userId,
-        // "Request");
+        kafkaLogger.sendLog("Fetching user profile for user ID: " + userId,
+                "Request");
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isEmpty()) {
-            // kafkaLogger.sendLog("User profile not found for user ID: " + userId,
-            // "Response");
+            kafkaLogger.sendLog("User profile not found for user ID: " + userId,
+                    "Response");
             return ResponseEntity.status(404).body(Map.of(
                     "status", 404,
                     "error", "Not Found",
@@ -91,8 +91,8 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = userOptional.get();
-        // kafkaLogger.sendLog("User profile fetched successfully for user ID: " +
-        // userId, "Response");
+        kafkaLogger.sendLog("User profile fetched successfully for user ID: " +
+                userId, "Response");
         return ResponseEntity.ok(Map.of(
                 "userId", user.getUserId(),
                 "username", user.getUsername(),

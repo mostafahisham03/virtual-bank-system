@@ -52,6 +52,8 @@ public class DashboardServiceImpl implements DashboardService {
                                                         "Response");
                                         log.error("Error fetching user profile for userId: {}", userId, ex);
                                         // return a mono error 404 user profile not found
+                                        // Uncomment if you want to return a default profile
+                                        // return Mono.just(createDefaultUserProfile(userId));
                                         return Mono.error(new ResponseStatusException(
                                                         HttpStatus.NOT_FOUND,
                                                         "User with ID " + userId + " not found."));

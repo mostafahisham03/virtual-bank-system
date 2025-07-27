@@ -5,7 +5,7 @@ info:
   description: Handles deposits, withdrawals, and transfers
 
 paths:
-  /accounts/{accountId}/transactions:
+  transactions/accounts/{accountId}:
     get:
       tags: [ Transaction ]
       summary: Get transaction history for an account
