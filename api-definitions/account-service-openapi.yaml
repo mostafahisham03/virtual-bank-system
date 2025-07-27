@@ -16,15 +16,15 @@ paths:
             schema:
               $ref: '#/components/schemas/AccountTransferRequest'
       responses:
-        200:
+        '200':
           description: Transfer successful
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountTransferResponse'
-        400:
+        '400':
           description: Invalid transfer request
-        404:
+        '404':
           description: Account not found
   /accounts:
     post:
@@ -37,13 +37,13 @@ paths:
             schema:
               $ref: '#/components/schemas/AccountCreation'
       responses:
-        201:
+        '201':
           description: Account created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountResponse'
-        400:
+        '400':
           description: Invalid account type or initial balance
 
   /accounts/{accountId}:
@@ -57,13 +57,13 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Account details
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountDetail'
-        404:
+        '404':
           description: Account not found
 
   /users/{userId}/accounts:
@@ -77,7 +77,7 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: List of user accounts
           content:
             application/json:
@@ -85,7 +85,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AccountDetail'
-        404:
+        '404':
           description: No accounts found
 
 components:

@@ -16,13 +16,13 @@ paths:
             schema:
               $ref: '#/components/schemas/UserRegistration'
       responses:
-        201:
+        '201':
           description: User created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
-        409:
+        '409':
           description: Username or email already exists
 
   /users/login:
@@ -36,13 +36,13 @@ paths:
             schema:
               $ref: '#/components/schemas/UserLogin'
       responses:
-        200:
+        '200':
           description: Authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
-        401:
+        '401':
           description: Invalid credentials
 
   /users/{userId}/profile:
@@ -56,13 +56,13 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: User profile
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserProfile'
-        404:
+        '404':
           description: User not found
 
 components:

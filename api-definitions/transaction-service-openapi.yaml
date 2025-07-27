@@ -16,7 +16,7 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: List of transactions
           content:
             application/json:
@@ -24,7 +24,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TransactionDetail'
-        404:
+        '404':
           description: No transactions found
 
   /transactions/transfer/initiation:
@@ -38,13 +38,13 @@ paths:
             schema:
               $ref: '#/components/schemas/TransferRequestInitiation'
       responses:
-        200:
+        '200':
           description: Transfer initiation success
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransferResponse'
-        400:
+        '400':
           description: Invalid account or insufficient funds
 
   /transactions/transfer/execution:
@@ -58,13 +58,13 @@ paths:
             schema:
               $ref: '#/components/schemas/TransferRequestExecution'
       responses:
-        200:
+        '200':
           description: Transfer executed successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransferResponse'
-        400:
+        '400':
           description: Invalid account or insufficient funds
 
 components:
