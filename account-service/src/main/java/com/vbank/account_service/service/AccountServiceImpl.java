@@ -30,24 +30,18 @@ public class AccountServiceImpl implements AccountService {
         kafkaLogger.sendLog(request.toString(), "Request");
         try {
             String userServiceUrl = "http://localhost:8081/users/" + request.getUserId() + "/profile";
-            String userProfile = webClientBuilder.build()
+            webClientBuilder.build()
                     .get()
                     .uri(userServiceUrl)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
-
-            kafkaLogger.sendLog("User profile found: " + userProfile, "Response");
         } catch (Exception e) {
-            kafkaLogger.sendLog("User not found with ID: " + request.getUserId(), "Response");
-            throw new ResourceNotFoundException("User does not exist with ID: " + request.getUserId());
+            throw new ResourceNotFoundException();
         }
 
-        AccountType type = request.getAccountType();
-        if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0 ||
-                (type != AccountType.SAVINGS && type != AccountType.CHECKING)) {
-            kafkaLogger.sendLog("Invalid account type or initial balance: " + request, "Response");
-            throw new BadRequestException("Invalid account type or initial balance.");
+        if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException();
         }
 
         Account account = Account.builder()
@@ -61,7 +55,6 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(account);
 
         kafkaLogger.sendLog("Account created: " + account.getId(), "Response");
-
         return mapToResponse(account);
     }
 
@@ -70,10 +63,8 @@ public class AccountServiceImpl implements AccountService {
         kafkaLogger.sendLog("Fetching account by ID: " + accountId, "Request");
 
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> {
-                    kafkaLogger.sendLog("Account not found: " + accountId, "Response");
-                    return new ResourceNotFoundException("Account with ID " + accountId + " not found.");
-                });
+                .orElseThrow(ResourceNotFoundException::new);
+
         kafkaLogger.sendLog("Account found: " + account.getId(), "Response");
         return mapToResponse(account);
     }
@@ -81,32 +72,28 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public List<AccountResponse> getAccountsByUserId(UUID userId) {
         kafkaLogger.sendLog("Fetching accounts for user ID: " + userId, "Request");
+
         if (userId == null) {
-            kafkaLogger.sendLog("User ID cannot be null", "Error");
-            throw new BadRequestException("User ID cannot be null.");
+            throw new BadRequestException();
         }
 
         try {
             String userServiceUrl = "http://localhost:8081/users/" + userId + "/profile";
-            String userProfile = webClientBuilder.build()
+            webClientBuilder.build()
                     .get()
                     .uri(userServiceUrl)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
-
-            kafkaLogger.sendLog("User profile found: " + userProfile, "Response");
         } catch (Exception e) {
-            kafkaLogger.sendLog("User not found with ID: " + userId, "Response");
-            throw new ResourceNotFoundException("User with ID " + userId + " does not exist.");
+            throw new ResourceNotFoundException();
         }
 
         List<Account> accounts = accountRepository.findByUserId(userId);
         if (accounts.isEmpty()) {
-            kafkaLogger.sendLog("No accounts found for user ID: " + userId, "Response");
-            throw new ResourceNotFoundException("No accounts found for user ID " + userId);
+            throw new ResourceNotFoundException();
         }
-        kafkaLogger.sendLog("Accounts found for user ID: " + userId, "Response");
+
         return accounts.stream().map(this::mapToResponse).collect(toList());
     }
 
@@ -116,14 +103,12 @@ public class AccountServiceImpl implements AccountService {
         kafkaLogger.sendLog("Transfer request: " + request.toString(), "Request");
 
         Account from = accountRepository.findById(request.getFromAccountId())
-                .orElseThrow(() -> new ResourceNotFoundException("Source account not found: " + request.getFromAccountId()));
+                .orElseThrow(ResourceNotFoundException::new);
         Account to = accountRepository.findById(request.getToAccountId())
-                .orElseThrow(() -> new ResourceNotFoundException("Destination account not found: " + request.getToAccountId()));
+                .orElseThrow(ResourceNotFoundException::new);
 
         if (from.getBalance().compareTo(request.getAmount()) < 0) {
-            kafkaLogger.sendLog("Insufficient balance in source account: " + from.getBalance() +
-                    ", required: " + request.getAmount(), "Response");
-            throw new BadRequestException("Insufficient balance in source account.");
+            throw new BadRequestException();
         }
 
         from.setBalance(from.getBalance().subtract(request.getAmount()));
@@ -134,10 +119,8 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(from);
         accountRepository.save(to);
 
-        TransferResponse response = new TransferResponse("Transfer completed successfully.");
         kafkaLogger.sendLog("Transfer successful from " + from.getId() + " to " + to.getId(), "Response");
-
-        return response;
+        return new TransferResponse("Transfer completed successfully.");
     }
 
     private String generateAccountNumber() {
