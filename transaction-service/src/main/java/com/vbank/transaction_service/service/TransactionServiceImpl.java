@@ -5,6 +5,12 @@ import com.vbank.transaction_service.model.TransactionStatus;
 import com.vbank.transaction_service.repository.TransactionRepository;
 import com.vbank.transaction_service.config.KafkaLogger;
 import com.vbank.transaction_service.dto.AccountBalanceUpdateDTO;
+import com.vbank.transaction_service.dto.ExecuteTransferResponse;
+import com.vbank.transaction_service.dto.InitiateTransferResponse;
+import com.vbank.transaction_service.dto.TransactionResponse;
+import com.vbank.transaction_service.exception.BadRequestException;
+import com.vbank.transaction_service.exception.ResourceNotFoundException;
+
 import lombok.RequiredArgsConstructor;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,19 +52,19 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         @Transactional
-        public Transaction initiateTransfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount,
+        public InitiateTransferResponse initiateTransfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount,
                         String description) {
                 kafkaLogger.sendLog("Initiating transfer from " + fromAccountId + " to " + toAccountId
                                 + " for amount: " + amount + " with description: " + description, "Request");
 
                 if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                         kafkaLogger.sendLog("Transfer amount must be positive: " + amount, "Response");
-                        throw new IllegalArgumentException("Transfer amount must be positive.");
+                        throw new BadRequestException("Transfer amount must be positive.");
                 }
 
                 if (fromAccountId.equals(toAccountId)) {
                         kafkaLogger.sendLog("Cannot transfer to the same account: " + fromAccountId, "Response");
-                        throw new IllegalArgumentException("Cannot transfer to the same account.");
+                        throw new BadRequestException("Cannot transfer to the same account.");
                 }
 
                 // Validate accounts existence and balance by fetching account details
@@ -154,7 +160,7 @@ public class TransactionServiceImpl implements TransactionService {
                         if (fromAccount.getBalance().compareTo(amount) < 0) {
                                 kafkaLogger.sendLog("Insufficient balance in source account: " +
                                                 fromAccount.getBalance() + ", required: " + amount, "Response");
-                                throw new IllegalArgumentException("Insufficient balance. Available: " +
+                                throw new BadRequestException("Insufficient balance. Available: " +
                                                 fromAccount.getBalance() + ", Required: " + amount);
                         }
 
@@ -164,13 +170,12 @@ public class TransactionServiceImpl implements TransactionService {
                 } catch (WebClientResponseException e) {
                         kafkaLogger.sendLog("Account validation failed: " + e.getMessage(), "Response");
                         System.err.println("Account validation failed: " + e.getMessage());
-                        throw new IllegalArgumentException("Account validation failed: " + e.getMessage(), e);
+                        throw new BadRequestException("Account validation failed: " + e.getMessage());
                 } catch (Exception e) {
                         kafkaLogger.sendLog(
                                         "Unexpected error during transfer validation: " + e.getMessage(), "Response");
-                        throw new RuntimeException(
-                                        "An unexpected error occurred during transfer validation: " + e.getMessage(),
-                                        e);
+                        throw new BadRequestException("Unexpected error during validation: " + e.getMessage());
+
                 }
 
                 // Create transaction record in INITIATED status after successful validation
@@ -185,18 +190,22 @@ public class TransactionServiceImpl implements TransactionService {
 
                 Transaction savedTransaction = transactionRepository.save(transaction);
                 kafkaLogger.sendLog("Transaction initiated: " + savedTransaction.getId(), "Response");
-                return savedTransaction;
+                InitiateTransferResponse response = new InitiateTransferResponse(
+                                savedTransaction.getId(),
+                                savedTransaction.getStatus(),
+                                savedTransaction.getTimestamp());
+                return response;
         }
 
         @Override
         @Transactional
-        public Transaction executeTransfer(UUID transactionId) {
+        public ExecuteTransferResponse executeTransfer(UUID transactionId) {
                 kafkaLogger.sendLog("Executing transfer for transaction ID: " +
                                 transactionId, "Request");
 
                 Transaction transaction = transactionRepository
                                 .findByIdAndStatus(transactionId, TransactionStatus.INITIATED)
-                                .orElseThrow(() -> new IllegalArgumentException(
+                                .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Transaction not found or not in 'INITIATED' status with ID: "
                                                                 + transactionId));
 
@@ -256,7 +265,12 @@ public class TransactionServiceImpl implements TransactionService {
                         kafkaLogger.sendLog("Transfer executed successfully for transaction ID: " +
                                         transactionId,
                                         "Response");
-                        return transaction;
+                        ExecuteTransferResponse response = new ExecuteTransferResponse(
+                                        transaction.getId(),
+                                        transaction.getStatus(),
+                                        transaction.getTimestamp());
+
+                        return response;
 
                 } catch (WebClientResponseException e) {
                         // Handle account service errors
@@ -267,7 +281,8 @@ public class TransactionServiceImpl implements TransactionService {
                                         "Transfer failed for transaction ID: " + transactionId + " - " +
                                                         e.getMessage(),
                                         "Response");
-                        throw new IllegalArgumentException("Transfer execution failed: " + e.getMessage(), e);
+                        throw new BadRequestException(
+                                        "Transfer execution failed: " + e.getMessage());
 
                 } catch (Exception e) {
                         // Handle unexpected errors
@@ -280,21 +295,35 @@ public class TransactionServiceImpl implements TransactionService {
                                         "Unexpected error during transfer execution for transaction ID: "
                                                         + transactionId + " - " + e.getMessage(),
                                         "Response");
-                        throw new RuntimeException(
-                                        "An unexpected error occurred during transaction execution: " + e.getMessage(),
-                                        e);
+                        throw new BadRequestException(
+                                        "Unexpected error during transfer execution: " + e.getMessage());
                 }
         }
 
         @Override
-        public List<Transaction> getTransactionsForAccount(UUID accountId) {
+        public List<TransactionResponse> getTransactionsForAccount(UUID accountId) {
                 kafkaLogger.sendLog("Fetching transactions for account ID: " + accountId,
                                 "Request");
                 List<Transaction> transactions = transactionRepository
                                 .findByFromAccountIdOrToAccountIdOrderByTimestampDesc(accountId, accountId);
                 kafkaLogger.sendLog("Fetched " + transactions.size() + " transactions for account ID: " + accountId,
                                 "Response");
-                return transactions;
+                if (transactions.isEmpty()) {
+                        kafkaLogger.sendLog("No transactions found for account ID: " + accountId,
+                                        "Response");
+                        throw new ResourceNotFoundException("No transactions found for account ID: " + accountId);
+                }
+                return transactions.stream()
+                                .map(transaction -> new TransactionResponse(
+                                                transaction.getId(),
+                                                transaction.getFromAccountId(),
+                                                transaction.getToAccountId(),
+                                                transaction.getAmount(),
+                                                transaction.getStatus(),
+                                                transaction.getTimestamp(),
+                                                transaction.getDescription()))
+                                .toList();
+
         }
 
         @Transactional(propagation = Propagation.REQUIRES_NEW)

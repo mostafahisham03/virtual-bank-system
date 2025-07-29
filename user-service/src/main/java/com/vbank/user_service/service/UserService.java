@@ -4,7 +4,6 @@ import com.vbank.user_service.dto.UserLoginResponse;
 import com.vbank.user_service.dto.UserProfileResponse;
 import com.vbank.user_service.dto.UserRegisterRequest;
 import com.vbank.user_service.dto.UserRegisterResponse;
-import com.vbank.user_service.model.User;
 
 import java.util.UUID;
 

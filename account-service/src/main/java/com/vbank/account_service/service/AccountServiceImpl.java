@@ -3,7 +3,8 @@ package com.vbank.account_service.service;
 import com.vbank.account_service.config.KafkaLogger;
 import com.vbank.account_service.dto.*;
 import com.vbank.account_service.model.*;
-import com.vbank.account_service.exception.AccountNotFoundException;
+import com.vbank.account_service.exception.BadRequestException;
+import com.vbank.account_service.exception.ResourceNotFoundException;
 import com.vbank.account_service.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,14 +42,14 @@ public class AccountServiceImpl implements AccountService {
 
         } catch (Exception e) {
             kafkaLogger.sendLog("User not found with ID: " + request.getUserId(), "Response");
-            throw new IllegalArgumentException("User does not exist.");
+            throw new ResourceNotFoundException("User does not exist with ID: " + request.getUserId());
         }
 
         AccountType type = request.getAccountType();
         if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0 ||
                 (type != AccountType.SAVINGS && type != AccountType.CHECKING)) {
             kafkaLogger.sendLog("Invalid account type or initial balance: " + request, "Response");
-            throw new IllegalArgumentException("Invalid account type or initial balance.");
+            throw new BadRequestException("Invalid account type or initial balance.");
         }
 
         Account account = Account.builder()
@@ -73,7 +74,7 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> {
                     kafkaLogger.sendLog("Account not found: " + accountId, "Response");
-                    return new AccountNotFoundException("Account with ID " + accountId + " not found.");
+                    return new ResourceNotFoundException("Account with ID " + accountId + " not found.");
                 });
         kafkaLogger.sendLog("Account found: " + account.getId(), "Response");
         return mapToResponse(account);
@@ -84,7 +85,7 @@ public class AccountServiceImpl implements AccountService {
         kafkaLogger.sendLog("Fetching accounts for user ID: " + userId, "Request");
         if (userId == null) {
             kafkaLogger.sendLog("User ID cannot be null", "Error");
-            throw new IllegalArgumentException("User ID cannot be null.");
+            throw new BadRequestException("User ID cannot be null.");
         }
         try {
             String userServiceUrl = "http://localhost:8081/users/" + userId + "/profile";
@@ -100,13 +101,13 @@ public class AccountServiceImpl implements AccountService {
 
         } catch (Exception e) {
             kafkaLogger.sendLog("User not found with ID: " + userId, "Response");
-            throw new IllegalArgumentException("User does not exist.");
+            throw new ResourceNotFoundException("User with ID " + userId + " does not exist.");
         }
 
         List<Account> accounts = accountRepository.findByUserId(userId);
         if (accounts.isEmpty()) {
             kafkaLogger.sendLog("No accounts found for user ID: " + userId, "Response");
-            throw new AccountNotFoundException("No accounts found for user ID " + userId);
+            throw new ResourceNotFoundException("No accounts found for user ID " + userId);
         }
         kafkaLogger.sendLog("Accounts found for user ID: " + userId, "Response");
         return accounts.stream().map(this::mapToResponse).collect(toList());
@@ -117,14 +118,16 @@ public class AccountServiceImpl implements AccountService {
     public void transferFunds(TransferRequest request) {
         kafkaLogger.sendLog("Transfer request: " + request.toString(), "Request");
         Account from = accountRepository.findById(request.getFromAccountId())
-                .orElseThrow(() -> new AccountNotFoundException(request.getFromAccountId()));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Source account not found: " + request.getFromAccountId()));
         Account to = accountRepository.findById(request.getToAccountId())
-                .orElseThrow(() -> new AccountNotFoundException(request.getToAccountId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Destination account not found: " + request.getToAccountId()));
 
         if (from.getBalance().compareTo(request.getAmount()) < 0) {
             kafkaLogger.sendLog("Insufficient balance in source account: " + from.getBalance() +
                     ", required: " + request.getAmount(), "Response");
-            throw new IllegalArgumentException("Insufficient balance.");
+            throw new BadRequestException("Insufficient balance in source account.");
         }
 
         from.setBalance(from.getBalance().subtract(request.getAmount()));

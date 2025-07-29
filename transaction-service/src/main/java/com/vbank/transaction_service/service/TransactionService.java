@@ -1,14 +1,17 @@
 package com.vbank.transaction_service.service; // Corrected package name
 
-import com.vbank.transaction_service.model.Transaction; // Corrected import
+import com.vbank.transaction_service.dto.ExecuteTransferResponse;
+import com.vbank.transaction_service.dto.InitiateTransferResponse;
+import com.vbank.transaction_service.dto.TransactionResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 public interface TransactionService {
-    Transaction initiateTransfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description);
+    InitiateTransferResponse initiateTransfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount,
+            String description);
 
-    Transaction executeTransfer(UUID transactionId);
+    ExecuteTransferResponse executeTransfer(UUID transactionId);
 
-    List<Transaction> getTransactionsForAccount(UUID accountId);
+    List<TransactionResponse> getTransactionsForAccount(UUID accountId);
 }
