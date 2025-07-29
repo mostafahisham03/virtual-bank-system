@@ -8,6 +8,7 @@ import com.vbank.account_service.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,10 +22,27 @@ public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
     private final KafkaLogger kafkaLogger;
+    private final WebClient.Builder webClientBuilder;
 
     @Override
     public AccountResponse createAccount(AccountRequest request) {
         kafkaLogger.sendLog(request.toString(), "Request");
+        try {
+            String userServiceUrl = "http://localhost:8081/users/" + request.getUserId() + "/profile";
+
+            String userProfile = webClientBuilder.build()
+                    .get()
+                    .uri(userServiceUrl)
+                    .retrieve()
+                    .bodyToMono(String.class) // keep it as raw string
+                    .block();
+
+            kafkaLogger.sendLog("User profile found: " + userProfile, "Response");
+
+        } catch (Exception e) {
+            kafkaLogger.sendLog("User not found with ID: " + request.getUserId(), "Response");
+            throw new IllegalArgumentException("User does not exist.");
+        }
 
         AccountType type = request.getAccountType();
         if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0 ||
@@ -64,6 +82,27 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public List<AccountResponse> getAccountsByUserId(UUID userId) {
         kafkaLogger.sendLog("Fetching accounts for user ID: " + userId, "Request");
+        if (userId == null) {
+            kafkaLogger.sendLog("User ID cannot be null", "Error");
+            throw new IllegalArgumentException("User ID cannot be null.");
+        }
+        try {
+            String userServiceUrl = "http://localhost:8081/users/" + userId + "/profile";
+
+            String userProfile = webClientBuilder.build()
+                    .get()
+                    .uri(userServiceUrl)
+                    .retrieve()
+                    .bodyToMono(String.class) // keep it as raw string
+                    .block();
+
+            kafkaLogger.sendLog("User profile found: " + userProfile, "Response");
+
+        } catch (Exception e) {
+            kafkaLogger.sendLog("User not found with ID: " + userId, "Response");
+            throw new IllegalArgumentException("User does not exist.");
+        }
+
         List<Account> accounts = accountRepository.findByUserId(userId);
         if (accounts.isEmpty()) {
             kafkaLogger.sendLog("No accounts found for user ID: " + userId, "Response");
