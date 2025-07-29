@@ -1,3 +1,4 @@
+// File: com.vbank.user_service.service.UserServiceImpl.java
 package com.vbank.user_service.service;
 
 import com.vbank.user_service.config.KafkaLogger;
@@ -9,6 +10,7 @@ import com.vbank.user_service.exception.BadRequestException;
 import com.vbank.user_service.exception.ResourceNotFoundException;
 import com.vbank.user_service.model.User;
 import com.vbank.user_service.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,11 +33,11 @@ public class UserServiceImpl implements UserService {
 
         @Override
         public UserRegisterResponse registerUser(UserRegisterRequest request) {
-                kafkaLogger.sendLog("Registering user: " + request.getUsername(), "Request");
+                kafkaLogger.sendLog(request, "Request");
 
                 if (userRepository.findByUsername(request.getUsername()).isPresent() ||
                         userRepository.findByEmail(request.getEmail()).isPresent()) {
-                        kafkaLogger.sendLog("Registration failed: Username or email already exists.", "Response");
+                        kafkaLogger.sendLog("Username or email already exists.", "Error");
                         throw new BadRequestException("Username or email already exists.");
                 }
 
@@ -48,56 +50,53 @@ public class UserServiceImpl implements UserService {
 
                 User savedUser = userRepository.save(user);
 
-                kafkaLogger.sendLog("User registered successfully: " + savedUser.getUsername(), "Response");
-
-                return new UserRegisterResponse(
+                UserRegisterResponse response = new UserRegisterResponse(
                         savedUser.getUserId(),
                         savedUser.getUsername(),
                         "User registered successfully."
                 );
+
+                kafkaLogger.sendLog(response, "Response");
+                return response;
         }
 
         @Override
         public UserLoginResponse loginUser(String username, String rawPassword) {
-                kafkaLogger.sendLog("User login attempt: " + username, "Request");
+                kafkaLogger.sendLog("Username: " + username, "Request");
 
                 Optional<User> userOptional = userRepository.findByUsername(username);
-                if (userOptional.isEmpty()) {
-                        kafkaLogger.sendLog("Login failed for user: " + username, "Response");
+                if (userOptional.isEmpty() || !passwordEncoder.matches(rawPassword, userOptional.get().getPassword())) {
+                        kafkaLogger.sendLog("Invalid login attempt for user: " + username, "Error");
                         throw new BadRequestException("Invalid username or password.");
                 }
 
                 User user = userOptional.get();
-                if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-                        kafkaLogger.sendLog("Login failed for user: " + username, "Response");
-                        throw new BadRequestException("Invalid username or password.");
-                }
+                UserLoginResponse response = new UserLoginResponse(user.getUserId(), user.getUsername());
 
-                kafkaLogger.sendLog("User logged in successfully: " + user.getUsername(), "Response");
-
-                return new UserLoginResponse(user.getUserId(), user.getUsername());
+                kafkaLogger.sendLog(response, "Response");
+                return response;
         }
 
         @Override
         public UserProfileResponse getUserProfile(UUID userId) {
-                kafkaLogger.sendLog("Fetching user profile for user ID: " + userId, "Request");
+                kafkaLogger.sendLog("User ID: " + userId, "Request");
 
                 Optional<User> userOptional = userRepository.findById(userId);
                 if (userOptional.isEmpty()) {
-                        kafkaLogger.sendLog("User profile not found for user ID: " + userId, "Response");
+                        kafkaLogger.sendLog("User with ID " + userId + " not found.", "Error");
                         throw new ResourceNotFoundException("User with ID " + userId + " not found.");
                 }
 
                 User user = userOptional.get();
-
-                kafkaLogger.sendLog("User profile fetched successfully for user ID: " + userId, "Response");
-
-                return new UserProfileResponse(
+                UserProfileResponse response = new UserProfileResponse(
                         user.getUserId(),
                         user.getUsername(),
                         user.getEmail(),
                         user.getFirstName(),
                         user.getLastName()
                 );
+
+                kafkaLogger.sendLog(response, "Response");
+                return response;
         }
 }

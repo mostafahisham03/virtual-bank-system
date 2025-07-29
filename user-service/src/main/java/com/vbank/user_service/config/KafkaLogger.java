@@ -1,29 +1,25 @@
+
 package com.vbank.user_service.config;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vbank.user_service.dto.LogDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-
-@Service
+@Component
 @RequiredArgsConstructor
 public class KafkaLogger {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final String topic = "vbank-logs"; // same logging topic
-
-    public void sendLog(String message, String type) {
+    public void sendLog(Object payload, String type) {
         try {
-            LogDTO log = new LogDTO(message, type, LocalDateTime.now().toString());
-            String json = objectMapper.writeValueAsString(log);
-            kafkaTemplate.send(topic, json);
-        } catch (Exception e) {
-            e.printStackTrace(); // avoid recursive logging here
+            String jsonMessage = objectMapper.writeValueAsString(payload);
+            kafkaTemplate.send("user-service-logs", String.format("[%s] %s", type.toUpperCase(), jsonMessage));
+        } catch (JsonProcessingException e) {
+            kafkaTemplate.send("user-service-logs", String.format("[%s] Failed to serialize object: %s", type.toUpperCase(), e.getMessage()));
         }
     }
 }
