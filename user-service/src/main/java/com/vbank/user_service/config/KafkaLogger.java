@@ -1,25 +1,50 @@
-
 package com.vbank.user_service.config;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
 @RequiredArgsConstructor
 public class KafkaLogger {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Value("${logging.kafka.topic:vbank-logs}")
+    private String topic;
+
+    public void sendLog(String message, String type) {
+        try {
+            Map<String, Object> envelope = new HashMap<>();
+            envelope.put("type", type);
+            envelope.put("ts", Instant.now().toString());
+            envelope.put("message", message);
+            kafkaTemplate.send(topic, objectMapper.writeValueAsString(envelope));
+        } catch (Exception ignored) {
+
+        }
+    }
+
+    /**
+     * New: accept any payload (Map/DTO). We serialize it into a JSON string
+     * internally.
+     */
     public void sendLog(Object payload, String type) {
         try {
-            String jsonMessage = objectMapper.writeValueAsString(payload);
-            kafkaTemplate.send("user-service-logs", String.format("[%s] %s", type.toUpperCase(), jsonMessage));
-        } catch (JsonProcessingException e) {
-            kafkaTemplate.send("user-service-logs", String.format("[%s] Failed to serialize object: %s", type.toUpperCase(), e.getMessage()));
+            Map<String, Object> envelope = new HashMap<>();
+            envelope.put("type", type);
+            envelope.put("ts", Instant.now().toString());
+            envelope.put("payload", payload);
+            kafkaTemplate.send(topic, objectMapper.writeValueAsString(envelope));
+        } catch (Exception ignored) {
+            // intentionally swallow to avoid recursive logging failures
         }
     }
 }

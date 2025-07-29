@@ -127,16 +127,6 @@ public class DashboardServiceImpl implements DashboardService {
                                 });
         }
 
-        // private UserProfile createDefaultUserProfile(String userId) {
-        // return UserProfile.builder()
-        // .userId(userId)
-        // .username("john.doe") // Consider removing or fetching from cache
-        // .email("johndoe@email.com")
-        // .firstName("John")
-        // .lastName("Doe")
-        // .build();
-        // }
-
         private DashboardResponse buildDashboardResponse(UserProfile userProfile, List<Account> accounts,
                         String userId) {
                 return DashboardResponse.builder()

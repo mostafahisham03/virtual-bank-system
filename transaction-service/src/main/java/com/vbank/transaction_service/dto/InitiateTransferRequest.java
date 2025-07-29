@@ -13,11 +13,9 @@ import java.util.UUID;
 @AllArgsConstructor
 
 public class InitiateTransferRequest {
-    @NotNull
-    @NotBlank(message = "From account ID cannot be blank")
+    @NotNull(message = "From account ID cannot be null")
     private UUID fromAccountId;
-    @NotNull
-    @NotBlank(message = "To account ID cannot be blank")
+    @NotNull(message = "To account ID cannot be null")
     private UUID toAccountId;
     @NotNull
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")

@@ -29,7 +29,6 @@ public class AccountServiceImpl implements AccountService {
     private final KafkaLogger kafkaLogger;
     private final WebClient.Builder webClientBuilder;
 
-
     @Value("${services.user.base-url:http://localhost:8081}")
     private String userServiceBaseUrl;
 
@@ -54,7 +53,7 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(account);
 
         AccountResponse response = mapToResponse(account);
-        kafkaLogger.sendLog(response.toString(), "Response");
+        kafkaLogger.sendLog(response, "Response");
         return response;
     }
 
@@ -66,7 +65,7 @@ public class AccountServiceImpl implements AccountService {
                 .orElseThrow(ResourceNotFoundException::new);
 
         AccountResponse response = mapToResponse(account);
-        kafkaLogger.sendLog(response.toString(), "Response");
+        kafkaLogger.sendLog(response, "Response");
         return response;
     }
 
@@ -114,8 +113,7 @@ public class AccountServiceImpl implements AccountService {
         kafkaLogger.sendLog(Map.of(
                 "from", from.getId(),
                 "to", to.getId(),
-                "amount", request.getAmount()
-        ).toString(), "Response");
+                "amount", request.getAmount()).toString(), "Response");
         return response;
     }
 
