@@ -12,6 +12,5 @@ public interface AccountService {
 
     List<AccountResponse> getAccountsByUserId(UUID userId);
 
-    void transferFunds(TransferRequest request);
-
+    TransferResponse transferFunds(TransferRequest request);
 }

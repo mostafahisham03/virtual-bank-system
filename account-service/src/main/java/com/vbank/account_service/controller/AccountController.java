@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;   // <-- add this import
 import java.util.*;
 
 @RestController
@@ -16,7 +17,7 @@ public class AccountController {
     private final AccountService accountService;
 
     @PostMapping
-    public ResponseEntity<AccountResponse> create(@RequestBody AccountRequest request) {
+    public ResponseEntity<AccountResponse> create(@Valid @RequestBody AccountRequest request) {
         AccountResponse account = accountService.createAccount(request);
         return new ResponseEntity<>(account, HttpStatus.CREATED);
     }
@@ -32,8 +33,8 @@ public class AccountController {
     }
 
     @PutMapping("/transfer")
-    public ResponseEntity<Map<String, String>> transfer(@RequestBody TransferRequest request) {
-        accountService.transferFunds(request);
-        return ResponseEntity.ok(Map.of("message", "Transfer completed successfully."));
+    public ResponseEntity<TransferResponse> transfer(@Valid @RequestBody TransferRequest request) {
+        TransferResponse result = accountService.transferFunds(request);
+        return ResponseEntity.ok(result);
     }
 }

@@ -30,16 +30,14 @@ public class AccountServiceImpl implements AccountService {
         kafkaLogger.sendLog(request.toString(), "Request");
         try {
             String userServiceUrl = "http://localhost:8081/users/" + request.getUserId() + "/profile";
-
             String userProfile = webClientBuilder.build()
                     .get()
                     .uri(userServiceUrl)
                     .retrieve()
-                    .bodyToMono(String.class) // keep it as raw string
+                    .bodyToMono(String.class)
                     .block();
 
             kafkaLogger.sendLog("User profile found: " + userProfile, "Response");
-
         } catch (Exception e) {
             kafkaLogger.sendLog("User not found with ID: " + request.getUserId(), "Response");
             throw new ResourceNotFoundException("User does not exist with ID: " + request.getUserId());
@@ -87,18 +85,17 @@ public class AccountServiceImpl implements AccountService {
             kafkaLogger.sendLog("User ID cannot be null", "Error");
             throw new BadRequestException("User ID cannot be null.");
         }
+
         try {
             String userServiceUrl = "http://localhost:8081/users/" + userId + "/profile";
-
             String userProfile = webClientBuilder.build()
                     .get()
                     .uri(userServiceUrl)
                     .retrieve()
-                    .bodyToMono(String.class) // keep it as raw string
+                    .bodyToMono(String.class)
                     .block();
 
             kafkaLogger.sendLog("User profile found: " + userProfile, "Response");
-
         } catch (Exception e) {
             kafkaLogger.sendLog("User not found with ID: " + userId, "Response");
             throw new ResourceNotFoundException("User with ID " + userId + " does not exist.");
@@ -115,14 +112,13 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public void transferFunds(TransferRequest request) {
+    public TransferResponse transferFunds(TransferRequest request) {
         kafkaLogger.sendLog("Transfer request: " + request.toString(), "Request");
+
         Account from = accountRepository.findById(request.getFromAccountId())
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Source account not found: " + request.getFromAccountId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Source account not found: " + request.getFromAccountId()));
         Account to = accountRepository.findById(request.getToAccountId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Destination account not found: " + request.getToAccountId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Destination account not found: " + request.getToAccountId()));
 
         if (from.getBalance().compareTo(request.getAmount()) < 0) {
             kafkaLogger.sendLog("Insufficient balance in source account: " + from.getBalance() +
@@ -132,13 +128,16 @@ public class AccountServiceImpl implements AccountService {
 
         from.setBalance(from.getBalance().subtract(request.getAmount()));
         to.setBalance(to.getBalance().add(request.getAmount()));
-
         from.setStatus(AccountStatus.ACTIVE);
-
         to.setStatus(AccountStatus.ACTIVE);
+
         accountRepository.save(from);
         accountRepository.save(to);
+
+        TransferResponse response = new TransferResponse("Transfer completed successfully.");
         kafkaLogger.sendLog("Transfer successful from " + from.getId() + " to " + to.getId(), "Response");
+
+        return response;
     }
 
     private String generateAccountNumber() {

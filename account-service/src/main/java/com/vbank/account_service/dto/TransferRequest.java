@@ -1,25 +1,24 @@
 package com.vbank.account_service.dto;
 
 import lombok.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransferRequest {
-    @NotNull
-    @NotBlank(message = "From account ID cannot be blank")
+    @NotNull(message = "From account ID is required")
     private UUID fromAccountId;
-    @NotNull
-    @NotBlank(message = "To account ID cannot be blank")
+
+    @NotNull(message = "To account ID is required")
     private UUID toAccountId;
-    @NotNull
-    @NotBlank(message = "Amount cannot be blank")
+
+    @NotNull(message = "Amount is required")
+    @DecimalMin(value = "0.01", inclusive = true, message = "Amount must be greater than 0")
     private BigDecimal amount;
 }
