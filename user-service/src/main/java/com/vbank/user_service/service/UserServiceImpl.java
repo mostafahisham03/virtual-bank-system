@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
                 kafkaLogger.sendLog(request, "Request");
 
                 if (userRepository.findByUsername(request.getUsername()).isPresent() ||
-                        userRepository.findByEmail(request.getEmail()).isPresent()) {
+                                userRepository.findByEmail(request.getEmail()).isPresent()) {
                         kafkaLogger.sendLog("Username or email already exists.", "Error");
                         throw new BadRequestException("Username or email already exists.");
                 }
@@ -51,10 +51,9 @@ public class UserServiceImpl implements UserService {
                 User savedUser = userRepository.save(user);
 
                 UserRegisterResponse response = new UserRegisterResponse(
-                        savedUser.getUserId(),
-                        savedUser.getUsername(),
-                        "User registered successfully."
-                );
+                                savedUser.getUserId(),
+                                savedUser.getUsername(),
+                                "User registered successfully.");
 
                 kafkaLogger.sendLog(response, "Response");
                 return response;
@@ -89,12 +88,11 @@ public class UserServiceImpl implements UserService {
 
                 User user = userOptional.get();
                 UserProfileResponse response = new UserProfileResponse(
-                        user.getUserId(),
-                        user.getUsername(),
-                        user.getEmail(),
-                        user.getFirstName(),
-                        user.getLastName()
-                );
+                                user.getUserId(),
+                                user.getUsername(),
+                                user.getEmail(),
+                                user.getFirstName(),
+                                user.getLastName());
 
                 kafkaLogger.sendLog(response, "Response");
                 return response;
