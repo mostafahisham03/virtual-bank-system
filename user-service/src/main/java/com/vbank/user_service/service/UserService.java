@@ -1,15 +1,18 @@
 package com.vbank.user_service.service;
 
+import com.vbank.user_service.dto.UserLoginResponse;
+import com.vbank.user_service.dto.UserProfileResponse;
+import com.vbank.user_service.dto.UserRegisterRequest;
+import com.vbank.user_service.dto.UserRegisterResponse;
 import com.vbank.user_service.model.User;
-import org.springframework.http.ResponseEntity;
 
 import java.util.UUID;
 
 public interface UserService {
 
-    ResponseEntity<?> registerUser(User user);
+    UserRegisterResponse registerUser(UserRegisterRequest request);
 
-    ResponseEntity<?> loginUser(String username, String password);
+    UserLoginResponse loginUser(String username, String password);
 
-    ResponseEntity<?> getUserProfile(UUID userId);
+    UserProfileResponse getUserProfile(UUID userId);
 }

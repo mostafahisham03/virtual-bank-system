@@ -1,8 +1,9 @@
-
 package com.vbank.user_service.controller;
 
-import com.vbank.user_service.model.User;
+import com.vbank.user_service.dto.*;
 import com.vbank.user_service.service.UserService;
+
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,17 +18,20 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        return userService.registerUser(user);
+    public ResponseEntity<UserRegisterResponse> register(@Valid @RequestBody UserRegisterRequest request) {
+        UserRegisterResponse response = userService.registerUser(request);
+        return ResponseEntity.status(201).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User user) {
-        return userService.loginUser(user.getUsername(), user.getPassword());
+    public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody UserLoginRequest request) {
+        UserLoginResponse response = userService.loginUser(request.getUsername(), request.getPassword());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{userId}/profile")
-    public ResponseEntity<?> getProfile(@PathVariable UUID userId) {
-        return userService.getUserProfile(userId);
+    public ResponseEntity<UserProfileResponse> getProfile(@PathVariable UUID userId) {
+        UserProfileResponse response = userService.getUserProfile(userId);
+        return ResponseEntity.ok(response);
     }
 }
