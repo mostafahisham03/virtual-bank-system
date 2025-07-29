@@ -119,14 +119,6 @@ public class AccountServiceImpl implements AccountService {
         return response;
     }
 
-    // ===== Helpers =====
-
-    /**
-     * Calls user-service: GET /users/{userId}/profile
-     * - If 2xx: user exists
-     * - If 404: throw ResourceNotFoundException()
-     * - Otherwise: let WebClient raise an exception (handled globally)
-     */
     private void assertUserExists(UUID userId) {
         String url = userServiceBaseUrl + "/users/{id}/profile";
         webClientBuilder.build()
