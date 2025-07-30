@@ -23,8 +23,8 @@ public class KafkaLogger {
     public void sendLog(String message, String type) {
         try {
             Map<String, Object> envelope = new HashMap<>();
-            envelope.put("type", type);
-            envelope.put("ts", Instant.now().toString());
+            envelope.put("messageType", type);
+            envelope.put("dateTime", Instant.now().toString());
             envelope.put("message", message);
             kafkaTemplate.send(topic, objectMapper.writeValueAsString(envelope));
         } catch (Exception ignored) {
@@ -39,9 +39,9 @@ public class KafkaLogger {
     public void sendLog(Object payload, String type) {
         try {
             Map<String, Object> envelope = new HashMap<>();
-            envelope.put("type", type);
-            envelope.put("ts", Instant.now().toString());
-            envelope.put("payload", payload);
+            envelope.put("messageType", type);
+            envelope.put("dateTime", Instant.now().toString());
+            envelope.put("message", payload.toString());
             kafkaTemplate.send(topic, objectMapper.writeValueAsString(envelope));
         } catch (Exception ignored) {
             // intentionally swallow to avoid recursive logging failures
