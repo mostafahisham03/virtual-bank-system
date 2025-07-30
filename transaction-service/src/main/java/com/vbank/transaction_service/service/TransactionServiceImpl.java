@@ -62,9 +62,16 @@ public class TransactionServiceImpl implements TransactionService {
                 // Basic validations (null check can be done in controller via @Valid; we only
                 // check <= 0 here)
                 if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                        kafkaLogger.sendLog(
+                                        "initiateTransfer failed: amount must be greater than zero",
+                                        "Response");
                         throw new BadRequestException("Amount must be greater than zero.");
                 }
                 if (fromAccountId.equals(toAccountId)) {
+                        kafkaLogger.sendLog(
+                                        "initiateTransfer failed: cannot transfer to the same account: "
+                                                        + fromAccountId,
+                                        "Response");
                         throw new BadRequestException("Cannot transfer to the same account.");
                 }
 
@@ -79,6 +86,9 @@ public class TransactionServiceImpl implements TransactionService {
 
                 // Balance check
                 if (fromAccount.getBalance().compareTo(amount) < 0) {
+                        kafkaLogger.sendLog(
+                                        "initiateTransfer failed: insufficient funds for accountId: " + fromAccountId,
+                                        "Response");
                         throw new BadRequestException("Insufficient funds.");
                 }
 
@@ -95,7 +105,7 @@ public class TransactionServiceImpl implements TransactionService {
                 Transaction saved = transactionRepository.save(transaction);
 
                 kafkaLogger.sendLog(
-                                "initiateTransfer response: id=" + saved.getId() + ", status=" + saved.getStatus(),
+                                "initiateTransfer response: id: " + saved.getId() + ", status= " + saved.getStatus(),
                                 "Response");
 
                 return new InitiateTransferResponse(saved.getId(), saved.getStatus(), saved.getTimestamp());
@@ -119,7 +129,7 @@ public class TransactionServiceImpl implements TransactionService {
                                 transaction.getToAccountId(),
                                 transaction.getAmount());
 
-                kafkaLogger.sendLog("accounts.transfer request: " + updateDto.toString(), "Request");
+                kafkaLogger.sendLog("Accounts transfer request: " + updateDto.toString(), "Request");
 
                 webClient.put()
                                 .uri("/accounts/transfer")
@@ -132,6 +142,10 @@ public class TransactionServiceImpl implements TransactionService {
                                                                         "Account service error: "
                                                                                         + clientResponse.statusCode()
                                                                                                         .value());
+                                                        kafkaLogger.sendLog(
+                                                                        "executeTransfer failed: "
+                                                                                        + body,
+                                                                        "Response");
                                                         return Mono.error(new BadRequestException(
                                                                         "Failed to transfer funds: "
                                                                                         + body));
@@ -164,6 +178,10 @@ public class TransactionServiceImpl implements TransactionService {
                                 .findByFromAccountIdOrToAccountIdOrderByTimestampDesc(accountId, accountId);
 
                 if (transactions.isEmpty()) {
+                        kafkaLogger.sendLog(
+                                        "getTransactionsForAccount response: no transactions found for accountId:"
+                                                        + accountId,
+                                        "Response");
                         throw new ResourceNotFoundException("No transactions found for account ID: " + accountId);
                 }
 
@@ -179,7 +197,7 @@ public class TransactionServiceImpl implements TransactionService {
                                 .toList();
 
                 kafkaLogger.sendLog(
-                                "getTransactionsForAccount response: count=" + response.size() + " for accountId="
+                                "getTransactionsForAccount response: count=" + response.size() + " for accountId: "
                                                 + accountId,
                                 "Response");
 
@@ -227,7 +245,5 @@ public class TransactionServiceImpl implements TransactionService {
                 transaction.setStatus(TransactionStatus.FAILED);
                 transaction.setTimestamp(Instant.now());
                 transactionRepository.save(transaction);
-                kafkaLogger.sendLog("markTransactionAsFailed: txId=" + transaction.getId() + ", reason=" + reason,
-                                "Info");
         }
 }

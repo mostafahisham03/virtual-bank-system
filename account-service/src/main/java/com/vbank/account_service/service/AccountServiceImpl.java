@@ -39,11 +39,13 @@ public class AccountServiceImpl implements AccountService {
         assertUserExists(request.getUserId());
 
         if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0) {
+            kafkaLogger.sendLog("Invalid initial balance: " + request.getInitialBalance(), "Response");
             throw new BadRequestException("Invalid initial balance.");
         }
         // check for account type validation(checking or savings
         if (request.getAccountType() == null || (!request.getAccountType().equals(AccountType.CHECKING)
                 && !request.getAccountType().equals(AccountType.SAVINGS))) {
+            kafkaLogger.sendLog("Invalid account type: " + request.getAccountType(), "Response");
             throw new BadRequestException("Invalid account type.");
         }
 
@@ -81,6 +83,7 @@ public class AccountServiceImpl implements AccountService {
 
         List<Account> accounts = accountRepository.findByUserId(userId);
         if (accounts.isEmpty()) {
+            kafkaLogger.sendLog("No accounts found for user ID: " + userId, "Response");
             throw new ResourceNotFoundException("No accounts found for user ID: " + userId);
         }
 
@@ -103,6 +106,7 @@ public class AccountServiceImpl implements AccountService {
                 .orElseThrow(ResourceNotFoundException::new);
 
         if (from.getBalance().compareTo(request.getAmount()) < 0) {
+            kafkaLogger.sendLog("Insufficient funds in the from account: " + from.getId(), "Response");
             throw new BadRequestException("Insufficient funds in the from account.");
         }
 
@@ -132,6 +136,7 @@ public class AccountServiceImpl implements AccountService {
                         return Mono.empty(); // OK -> user exists
                     }
                     if (clientResponse.statusCode() == HttpStatus.NOT_FOUND) {
+                        kafkaLogger.sendLog("User with ID " + userId + " not found.", "Response");
                         return Mono.error(new ResourceNotFoundException(
                                 "User with ID " + userId + " not found."));
                     }

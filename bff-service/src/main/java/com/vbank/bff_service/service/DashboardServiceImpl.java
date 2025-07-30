@@ -92,7 +92,7 @@ public class DashboardServiceImpl implements DashboardService {
                                 .doOnError(ex -> kafkaLogger.sendLog(
                                                 "Error fetching dashboard for user ID: " + userId + ", Error: "
                                                                 + ex.getMessage(),
-                                                "Error"))
+                                                "Response"))
                                 .onErrorResume(ex -> {
                                         log.error("Error fetching dashboard for userId: {}", userId, ex);
                                         return Mono.error(new ResourceNotFoundException(

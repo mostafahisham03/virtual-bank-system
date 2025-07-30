@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
 
                 if (userRepository.findByUsername(request.getUsername()).isPresent() ||
                                 userRepository.findByEmail(request.getEmail()).isPresent()) {
-                        kafkaLogger.sendLog("Username or email already exists.", "Error");
+                        kafkaLogger.sendLog("Username or email already exists.", "Response");
                         throw new BadRequestException("Username or email already exists.");
                 }
 
@@ -65,7 +65,7 @@ public class UserServiceImpl implements UserService {
 
                 Optional<User> userOptional = userRepository.findByUsername(username);
                 if (userOptional.isEmpty() || !passwordEncoder.matches(rawPassword, userOptional.get().getPassword())) {
-                        kafkaLogger.sendLog("Invalid login attempt for user: " + username, "Error");
+                        kafkaLogger.sendLog("Invalid login attempt for user: " + username, "Response");
                         throw new BadRequestException("Invalid username or password.");
                 }
 
@@ -82,7 +82,7 @@ public class UserServiceImpl implements UserService {
 
                 Optional<User> userOptional = userRepository.findById(userId);
                 if (userOptional.isEmpty()) {
-                        kafkaLogger.sendLog("User with ID " + userId + " not found.", "Error");
+                        kafkaLogger.sendLog("User with ID " + userId + " not found.", "Response");
                         throw new ResourceNotFoundException("User with ID " + userId + " not found.");
                 }
 
