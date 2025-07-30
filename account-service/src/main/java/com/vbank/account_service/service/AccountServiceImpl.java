@@ -39,7 +39,12 @@ public class AccountServiceImpl implements AccountService {
         assertUserExists(request.getUserId());
 
         if (request.getInitialBalance().compareTo(BigDecimal.ZERO) < 0) {
-            throw new BadRequestException();
+            throw new BadRequestException("Invalid initial balance.");
+        }
+        // check for account type validation(checking or savings
+        if (request.getAccountType() == null || (!request.getAccountType().equals(AccountType.CHECKING)
+                && !request.getAccountType().equals(AccountType.SAVINGS))) {
+            throw new BadRequestException("Invalid account type.");
         }
 
         Account account = Account.builder()
@@ -76,7 +81,7 @@ public class AccountServiceImpl implements AccountService {
 
         List<Account> accounts = accountRepository.findByUserId(userId);
         if (accounts.isEmpty()) {
-            throw new ResourceNotFoundException();
+            throw new ResourceNotFoundException("No accounts found for user ID: " + userId);
         }
 
         List<AccountResponse> response = accounts.stream()
@@ -98,7 +103,7 @@ public class AccountServiceImpl implements AccountService {
                 .orElseThrow(ResourceNotFoundException::new);
 
         if (from.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new BadRequestException();
+            throw new BadRequestException("Insufficient funds in the from account.");
         }
 
         from.setBalance(from.getBalance().subtract(request.getAmount()));
@@ -127,7 +132,8 @@ public class AccountServiceImpl implements AccountService {
                         return Mono.empty(); // OK -> user exists
                     }
                     if (clientResponse.statusCode() == HttpStatus.NOT_FOUND) {
-                        return Mono.error(new ResourceNotFoundException());
+                        return Mono.error(new ResourceNotFoundException(
+                                "User with ID " + userId + " not found."));
                     }
                     // other statuses: propagate
                     return clientResponse.createException().flatMap(Mono::error);

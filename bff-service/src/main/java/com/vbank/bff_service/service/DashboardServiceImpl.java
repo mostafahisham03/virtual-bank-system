@@ -2,13 +2,13 @@ package com.vbank.bff_service.service;
 
 import com.vbank.bff_service.config.KafkaLogger;
 import com.vbank.bff_service.dto.*;
+import com.vbank.bff_service.exception.ResourceNotFoundException;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.server.ResponseStatusException;
 
 import reactor.core.publisher.Mono;
 
@@ -51,11 +51,7 @@ public class DashboardServiceImpl implements DashboardService {
                                         kafkaLogger.sendLog("Error fetching user profile for userId: " + userId,
                                                         "Response");
                                         log.error("Error fetching user profile for userId: {}", userId, ex);
-                                        // return a mono error 404 user profile not found
-                                        // Uncomment if you want to return a default profile
-                                        // return Mono.just(createDefaultUserProfile(userId));
-                                        return Mono.error(new ResponseStatusException(
-                                                        HttpStatus.NOT_FOUND,
+                                        return Mono.error(new ResourceNotFoundException(
                                                         "User with ID " + userId + " not found."));
                                 });
 
@@ -99,9 +95,8 @@ public class DashboardServiceImpl implements DashboardService {
                                                 "Error"))
                                 .onErrorResume(ex -> {
                                         log.error("Error fetching dashboard for userId: {}", userId, ex);
-                                        return Mono.error(new ResponseStatusException(
-                                                        HttpStatus.INTERNAL_SERVER_ERROR,
-                                                        "Failed to retrieve dashboard data due to an issue with downstream services."));
+                                        return Mono.error(new ResourceNotFoundException(
+                                                        "Dashboard for user with ID " + userId + " not found."));
                                 });
 
         }
